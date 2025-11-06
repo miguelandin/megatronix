@@ -20,7 +20,8 @@ typedef struct{
 // Variables Globales
 int globaltime = 0;
 int numFallos = 0;
-const int TAM_MEMORIA_RAM = pow(2,BIT_BUS); // Bytes
+const int TAM_MEMORIA_RAM = pow(2,BITS_BUS); // Bytes
+const int NUM_FILAS = 8; // Numero de filas que tiene la cache
 
 // Declaracion de funciones
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
@@ -29,12 +30,12 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
 // devuelve un struct T_CACHE_LINE inicializado
-struct T_CACHE_LINE InicializarTCL() { 
-	struct T_CACHE_LINE res;
+T_CACHE_LINE InicializarTCL() { 
+	T_CACHE_LINE res;
 
 	res.ETQ = 0xFF; // inicializar etiqueta
 	for(int i = 0; i < TAM_LINEA; i++) // inicializar linea
-		res.Data = 0x23;
+		res.Data[i] = 0x23;
 
 	return res;
 }
@@ -43,12 +44,12 @@ struct T_CACHE_LINE InicializarTCL() {
 unsigned char* crearSimulRam() {
 	unsigned char ch; // char actual que se este leyendo
 	int cont = 0; // contador para el array
-	unsigned char * Simul_RAM = new unsigned char[TAM_MEMORIA_RAM];
+	unsigned char * Simul_RAM = (unsigned char*)malloc(TAM_MEMORIA_RAM * sizeof(unsigned char));
 	
 	FILE *fptr = fopen("CONTENTS_RAM.bin", "r"); // abre el archivo en modo lectura
 	
 	while((ch = fgetc(fptr)) != EOF && cont < TAM_MEMORIA_RAM) // lee hasta que se llene la RAM o termine el archivo
-		Simul_RAM[i++] = ch; // mete el contenido archivo en el array
+		Simul_RAM[cont++] = ch; // mete el contenido del archivo en el array
 	
 	return Simul_RAM;
 }
