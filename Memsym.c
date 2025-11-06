@@ -1,8 +1,15 @@
 /*Autores : Miguel Cabrera
             Alejandro Mamán
 */
+//importaciones
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 // Defines
 #define TAM_LINEA 16 // bytes por linea
+#define BITS_BUS 12 // bits del bus de direcciones
 
 // Struct
 typedef struct{
@@ -13,12 +20,38 @@ typedef struct{
 // Variables Globales
 int globaltime = 0;
 int numFallos = 0;
+const int TAM_MEMORIA_RAM = pow(2,BIT_BUS); // Bytes
 
 // Declaracion de funciones
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
 void VolcarCACHE(T_CACHE_LINE *tbl);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
+
+// devuelve un struct T_CACHE_LINE inicializado
+struct T_CACHE_LINE InicializarTCL() { 
+	struct T_CACHE_LINE res;
+
+	res.ETQ = 0xFF; // inicializar etiqueta
+	for(int i = 0; i < TAM_LINEA; i++) // inicializar linea
+		res.Data = 0x23;
+
+	return res;
+}
+
+// crea el array de chars Simul_RAM con el contenido de CONTENTS_RAM.bin
+unsigned char* crearSimulRam() {
+	unsigned char ch; // char actual que se este leyendo
+	int cont = 0; // contador para el array
+	unsigned char * Simul_RAM = new unsigned char[TAM_MEMORIA_RAM];
+	
+	FILE *fptr = fopen("CONTENTS_RAM.bin", "r"); // abre el archivo en modo lectura
+	
+	while((ch = fgetc(fptr)) != EOF && cont < TAM_MEMORIA_RAM) // lee hasta que se llene la RAM o termine el archivo
+		Simul_RAM[i++] = ch; // mete el contenido archivo en el array
+	
+	return Simul_RAM;
+}
 
 int main(int argc, char *argv[]){
     // ARRANQUE DEL PROGRAMA
