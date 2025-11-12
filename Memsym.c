@@ -10,6 +10,7 @@
 // Defines
 #define TAM_LINEA 16 // bytes por linea
 #define BITS_BUS 12 // bits del bus de direcciones
+#define TAM_DIR_MEMORIA 3 // cifras hex que tiene una direccion de memoria
 
 // Struct
 typedef struct{
@@ -42,31 +43,112 @@ T_CACHE_LINE InicializarTCL() {
 
 // crea el array de chars Simul_RAM con el contenido de CONTENTS_RAM.bin
 unsigned char* crearSimulRam() {
+	FILE *fptr = fopen("CONTENTS_RAM.bin", "r"); // abre el archivo en modo lectura
+  if(fptr == NULL) // en caso de que no se encuentre el archivo
+    return NULL;
+
 	unsigned char ch; // char actual que se este leyendo
 	int cont = 0; // contador para el array
 	unsigned char * Simul_RAM = (unsigned char*)malloc(TAM_MEMORIA_RAM * sizeof(unsigned char));
 	
-	FILE *fptr = fopen("CONTENTS_RAM.bin", "r"); // abre el archivo en modo lectura
-	
 	while((ch = fgetc(fptr)) != EOF && cont < TAM_MEMORIA_RAM) // lee hasta que se llene la RAM o termine el archivo
 		Simul_RAM[cont++] = ch; // mete el contenido del archivo en el array
 	
+  fclose(fptr);
 	return Simul_RAM;
 }
 
+// devuelve la siguiente direccion de memoria de accesos_memoria.txt
+char* leerDirMem(FILE * fptr){ // fptr: puntero que lea el archivo
+  if(fptr == NULL) // en caso de que no se encuentra el archivo
+    return NULL;
+
+  char ch; // char actual que se este leyendo
+  int cont = 0; // contador para el array
+  char * dir; // array que contendra la direccion de memoria de la linea actual
+
+  ch = fgetc(fptr); // lee el primer char
+  if(ch == EOF) // si se ha llegado al final del archivo
+    dir = NULL; // se deolvera null
+  else{
+    dir = (char*)malloc(TAM_DIR_MEMORIA * sizeof(char)); // se le da una memoria
+    while(ch != '\n'){ // hasta el final de linea
+      dir[cont++] = ch; // mete la fila de direccion actual en el array
+      ch = fgetc(fptr);
+    }
+  }
+
+  return dir;
+}
+
+// devuelve el numero de filas que hay en accesos_memoria.txt
+int contarFilasMem(){
+  FILE * fptr = fopen("accesos_memoria.txt", "r"); // abre el archivo
+  if(fptr == NULL) // en caso de no encontrarse el archivo
+    return -1;
+
+  int cont = 0;
+  char ch;
+
+  while((ch = fgetc(fptr)) != EOF) // mientras no llegue al final
+    if(ch == '\n') // si es fin de linea
+      cont++; // suma una linea
+
+  fclose(fptr);
+  return cont;
+}
+
+
+// en caso de querer cargar todas las direccines de memoria
+char** crearMtrzDir(){ // filas: saber el número de filas hay
+  FILE *fptr = fopen("accesos_memoria.txt", "r"); // abre el archivo
+  if(fptr == NULL) // en caso de que no se encuentre el archivo
+    return NULL;
+
+  char** dirMtrx; // matriz de direcciones que contiene todas las direcciones
+  char * dir; // direccion actual
+  int cont = 0; // contador para la matriz
+  dirMtrx = (char **)malloc(contarFilasMem() * sizeof(char *)); // asigna memoria a la matriz
+
+  dir = leerDirMem(fptr); // saca la nueva direccion de memoria
+  while(dir != NULL){ // mientras no se llegue al final del archivo
+    dirMtrx[cont] = dir; // añade la dir en la fila cont
+    dir = leerDirMem(fptr); // saca la nueva dir
+    cont++;
+  }
+
+  fclose(fptr);
+  return dirMtrx;
+}
+
+// imprime la matriz de direcciones que se le pase
+void printMtrzDir(char ** dirMtrx){
+  if(dirMtrx != NULL) {
+    int filas = contarFilasMem();
+
+    printf("Número de filas: %d\n", filas); // muestra el numero de filas tambien
+
+    for(int f = 0; f < filas; f++){
+      for(int c = 0; c < TAM_DIR_MEMORIA; c++)
+        printf("%c", dirMtrx[f][c]);
+        printf("\n");
+    }
+  }
+}
+
+// libera la memoria de la matriz de direcciones que se pase
+void borrarMtrzDir(char **dirMtrx){
+  for(int f = 0; dirMtrx[f] != NULL; f++)
+    free(dirMtrx[f]); // libera memoria de cada fila
+
+  free(dirMtrx); // libera el puntero a las filas
+}
+
 int main(int argc, char *argv[]){
-    // ARRANQUE DEL PROGRAMA
-        // Inicializar los campos ETQ a 0xFF
-        // TO-DO
-
-        // Inicializar todos los bytes de datos de la cache a 0x23
-        // TO-DO
-
-        // leer el fichero binario CONTENTS_RAM.bin en la variable Simul_RAM (un array de 4026 unsigned char)
-        // TO-DO
-
-        // Abrir y leer el fichero de texto dirs_memoria.txt (lista de direcciones en hexadecimal UNA POR LINEA)
-        // TO-DO
+  // codigo de testeo borrar luego
+  char ** dirMtrx = crearMtrzDir();
+  printMtrzDir(dirMtrx);
+  borrarMtrzDir(dirMtrx);
 
         // Si uno de los ficheros no existe devolver return(-1)
 
