@@ -57,7 +57,7 @@ apropiado y terminar con `return(-1)`.
 ## Protocolo de funcionamiento (por cada dirección leída)
 
 1. MEMsym lee una dirección del fichero de accesos.
-2. Parsear la dirección en sus campos (ETQ, palabra, línea, bloque).
+2. Parsear la dirección en sus campos (ETQ, palabra, línea/bloque).
 3. Comprobar si la etiqueta (ETQ) de la dirección es igual al campo `ETQ` de la
 	 línea de la caché correspondiente.
 4. Si la etiqueta no coincide (fallo de caché):
