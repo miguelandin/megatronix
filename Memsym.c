@@ -1,5 +1,15 @@
-/*Autores : Miguel Cabrera
-            Alejandro Mamán
+/*Autores :
+Miguel Cabrera
+Alejandro Mamán
+*/
+
+/*Comentarios para el compañero
+- Alex :
+  - He hecho retoques en varias funciones
+  - la mayoria son fallos tontos como que los arrays hay que añadirles el \0 apra poder detectar cuando termina dicho array
+  - Comprobacciones de malloc que suele petar por x razones
+  - en vez de usar pow usar desplazamiento de bits que tiene mas sentido y a Carlos seguro que le gusta más
+  - Ademas a la hora de leer ficheros es mejor usar caracteres en formato int porque depende de donde lo ejecutes no te pilla en EOF
 */
 //importaciones
 #include <math.h>
@@ -7,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Defines
+// Define's
 #define TAM_LINEA 16 // bytes por linea
 #define BITS_BUS 12 // bits del bus de direcciones
 #define TAM_DIR_MEMORIA 3 // cifras hex que tiene una direccion de memoria
@@ -21,7 +31,7 @@ typedef struct{
 // Variables Globales
 int globaltime = 0;
 int numFallos = 0;
-const int TAM_MEMORIA_RAM = pow(2,BITS_BUS); // Bytes
+const int TAM_MEMORIA_RAM = (1 << BITS_BUS); // Bytes (Mejor usar desplazamiento de bits)
 const int NUM_FILAS = 8; // Numero de filas que tiene la cache
 
 // Declaracion de funciones
@@ -30,7 +40,8 @@ void VolcarCACHE(T_CACHE_LINE *tbl);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
-// devuelve un struct T_CACHE_LINE inicializado
+/*Devuelve un struct T_CACHE_LINE inicializado
+con Etiqueta en xFF y datos en 0x23*/
 T_CACHE_LINE InicializarTCL() { 
 	T_CACHE_LINE res;
 
@@ -41,44 +52,60 @@ T_CACHE_LINE InicializarTCL() {
 	return res;
 }
 
-// crea el array de chars Simul_RAM con el contenido de CONTENTS_RAM.bin
+// Crea el array de chars Simul_RAM con el contenido de CONTENTS_RAM.bin
 unsigned char* crearSimulRam() {
-	FILE *fptr = fopen("CONTENTS_RAM.bin", "r"); // abre el archivo en modo lectura
+	FILE *fptr = fopen("CONTENTS_RAM.bin", "rb"); // abre el archivo en modo lectura BINARIA
   if(fptr == NULL) // en caso de que no se encuentre el archivo
     return NULL;
 
-	unsigned char ch; // char actual que se este leyendo
-	int cont = 0; // contador para el array
-	unsigned char * Simul_RAM = (unsigned char*)malloc(TAM_MEMORIA_RAM * sizeof(unsigned char));
+	int valorDelFichero; // char actual que se este leyendo
+	int i = 0; // contador para el array
+	unsigned char *Simul_RAM = (unsigned char*)malloc(TAM_MEMORIA_RAM * sizeof(unsigned char));
+
+  // Comprobacion de malloc
+  if(Simul_RAM == NULL) {
+    fclose(fptr); // cerrar el archivo antes de salir
+    return NULL; // en caso de error al asignar memoria
+  }
+  
 	
-	while((ch = fgetc(fptr)) != EOF && cont < TAM_MEMORIA_RAM) // lee hasta que se llene la RAM o termine el archivo
-		Simul_RAM[cont++] = ch; // mete el contenido del archivo en el array
+	while((valorDelFichero = fgetc(fptr)) != EOF && i < TAM_MEMORIA_RAM){ // lee hasta que se llene la RAM o termine el archivo
+		Simul_RAM[i++] = (unsigned char)valorDelFichero; // mete el contenido del archivo en el array parseandolo a char
+	}
 	
   fclose(fptr);
 	return Simul_RAM;
 }
 
-// devuelve la siguiente direccion de memoria de accesos_memoria.txt
-char* leerDirMem(FILE * fptr){ // fptr: puntero que lea el archivo
+// Devuelve la siguiente direccion de memoria de accesos_memoria.txt
+char* LeerDireccionMemoria(FILE * fptr){ // fptr: puntero que lea el archivo
   if(fptr == NULL) // en caso de que no se encuentra el archivo
     return NULL;
 
-  char ch; // char actual que se este leyendo
-  int cont = 0; // contador para el array
-  char * dir; // array que contendra la direccion de memoria de la linea actual
+  int caracter; // caracter actual que se este leyendo en int para detectar EOF
+  int i = 0; // contador para el array
+  char *direccionMemoria; // array que contendra la direccion de memoria de la linea actual
 
-  ch = fgetc(fptr); // lee el primer char
-  if(ch == EOF) // si se ha llegado al final del archivo
-    dir = NULL; // se deolvera null
+  caracter = fgetc(fptr); // lee el primer caracter
+
+  // si se ha llegado al final del archivo
+  if(caracter == EOF)
+    direccionMemoria = NULL; // se devolvera null
   else{
-    dir = (char*)malloc(TAM_DIR_MEMORIA * sizeof(char)); // se le da una memoria
-    while(ch != '\n'){ // hasta el final de linea
-      dir[cont++] = ch; // mete la fila de direccion actual en el array
-      ch = fgetc(fptr);
+    direccionMemoria = (unsigned char*)malloc((TAM_DIR_MEMORIA + 1) * sizeof(unsigned char)); // se le da una memoria
+    // COmprobacion de malloc
+    if(direccionMemoria == NULL) {
+      return NULL; // en caso de error al asignar memoria
     }
+
+    while(caracter != '\n' && i < TAM_DIR_MEMORIA && caracter != EOF){ // hasta el final de linea o llege al machimo de la memoria o encuentre un EOF
+      direccionMemoria[i++] = caracter; // mete la fila de direccion actual en el array
+      caracter = fgetc(fptr);
+    }
+    direccionMemoria[i] = '\0'; // añadimos el \0 par indicar el finar de la direccion 
   }
 
-  return dir;
+  return direccionMemoria;
 }
 
 // devuelve el numero de filas que hay en accesos_memoria.txt
@@ -88,11 +115,14 @@ int contarFilasMem(){
     return -1;
 
   int cont = 0;
-  char ch;
+  int caracter; // caracter actual que se este leyendo en int para detectar EOF
 
-  while((ch = fgetc(fptr)) != EOF) // mientras no llegue al final
-    if(ch == '\n') // si es fin de linea
+  while((caracter = fgetc(fptr)) != EOF) // mientras no llegue al final
+    if(caracter == '\n') // si es fin de linea
       cont++; // suma una linea
+  
+    if(caracter == EOF && cont > 0) // si el archivo no termina en salto de linea, suma una linea mas
+      cont++;
 
   fclose(fptr);
   return cont;
@@ -110,10 +140,15 @@ char** crearMtrzDir(){ // filas: saber el número de filas hay
   int cont = 0; // contador para la matriz
   dirMtrx = (char **)malloc(contarFilasMem() * sizeof(char *)); // asigna memoria a la matriz
 
-  dir = leerDirMem(fptr); // saca la nueva direccion de memoria
+  if(dirMtrx == NULL) { // comprobacion de malloc
+    fclose(fptr);
+    return NULL; // en caso de error al asignar memoria
+  }
+
+  dir = LeerDireccionMemoria(fptr); // saca la nueva direccion de memoria
   while(dir != NULL){ // mientras no se llegue al final del archivo
     dirMtrx[cont] = dir; // añade la dir en la fila cont
-    dir = leerDirMem(fptr); // saca la nueva dir
+    dir = LeerDireccionMemoria(fptr); // saca la nueva dir
     cont++;
   }
 
@@ -144,58 +179,63 @@ void borrarMtrzDir(char **dirMtrx){
   free(dirMtrx); // libera el puntero a las filas
 }
 
-int main(int argc, char *argv[]){
-  // codigo de testeo borrar luego
-  char ** dirMtrx = crearMtrzDir();
-  printMtrzDir(dirMtrx);
-  borrarMtrzDir(dirMtrx);
+int main(void){
+  /* Test básico de InicializarTCL y crearSimulRam
+     - InicializarTCL: imprime etiqueta y los 16 bytes de la línea
+     - crearSimulRam: intenta leer CONTENTS_RAM.bin y muestra los primeros bytes
+  */
+  printf("////////////////////////////////////////////////////////////\n");
+  printf("== Testing InicializarTCL ==\n");
+  T_CACHE_LINE linea = InicializarTCL();
+  printf("ETQ = 0x%02X\n", linea.ETQ);
+  printf("Data: ");
+  for(int i = 0; i < TAM_LINEA; i++)
+    printf("%02X ", linea.Data[i]);
+  printf("\n\n");
 
-        // Si uno de los ficheros no existe devolver return(-1)
+  printf("////////////////////////////////////////////////////////////\n");
 
-        // Logica del main
-        /*
+  printf("== Testing crearSimulRam ==\n");
+  unsigned char *ram = crearSimulRam();
+  // Comprobación
+  if(ram == NULL){
+    fprintf(stderr, "ERROR: no se pudo leer CONTENTS_RAM.bin o alloc falló\n");
+    return -1;
+  }
+  int mostrar = (TAM_MEMORIA_RAM < 32) ? TAM_MEMORIA_RAM : 32;
+  printf("Primeros %d bytes de Simul_RAM:\n", mostrar);
+  for(int i = 0; i < mostrar; i++){
+    printf("En hexa --> %02X || ", ram[i]);
+    printf("En char --> %c \n", ram[i]);
+  }
+  free(ram);
+  printf("////////////////////////////////////////////////////////////\n");
+  printf("\n== Testing LeerDireccionMemoria ==\n");
+  FILE *fdir = fopen("accesos_memoria.txt", "r");
+  if(fdir == NULL){
+    fprintf(stderr, "Aviso: no se encontro'accesos_memoria.txt'\n");
+  } else {
+    char *linea;
+    int idx = 0;
+    while((linea = LeerDireccionMemoria(fdir)) != NULL){
+      printf("Linea %d: '%s'\n", idx++, linea);
+      free(linea);
+    }
+    fclose(fdir);
+  }
 
-        1. MEMsym lee una dirección del fichero de accesos.
-        
-        2. Parsear la dirección en sus campos (ETQ, palabra, línea, bloque).
-       
-        3. Comprobar si la etiqueta (ETQ) de la dirección es igual al campo `ETQ` de la línea de la caché correspondiente.
-        
-        4. Si la etiqueta no coincide (fallo de caché):
-        - Incrementar `numfallos`.
-        - Imprimir una línea con el formato:
-		 `T: %d, Fallo de CACHE %d, ADDR %04X Label %X linea %02X palabra %02X bloque %02X`.
-		 (T es el instante actual `globaltime`).
-         - Incrementar `globaltime` en 20.
-         - Copiar el bloque correspondiente desde `Simul_RAM` a la línea de la caché.
-         - Imprimir un mensaje indicando que se está cargando el bloque X en la línea Y.
-         - Actualizar el campo `ETQ` y los 16 bytes de datos de la línea.
-         
-         5. Si la etiqueta coincide (acierto de caché):
-         - Imprimir por pantalla:
-		 `T: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X`.
-         - Cada carácter leído se añade a una variable `texto` (array de hasta 100
-		 caracteres; no es necesario usar memoria dinámica).
 
-         6. Volcar el contenido de la caché por pantalla con el formato pedido en el
-         enunciado. Los datos se imprimen de izquierda a derecha de mayor a menor
-         peso: el byte más a la izquierda es el byte 15 de la línea y el de la
-         derecha es el byte 0.
-         
-         7. Hacer `sleep(1)` antes de procesar la siguiente dirección.
+  printf("////////////////////////////////////////////////////////////\n");
+  printf("\n== Testing contarFilasMem ==\n");
+  int filas = contarFilasMem();
+  if(filas == -1){
+    fprintf(stderr, "Aviso: no se encontro 'accesos_memoria.txt'\n");
+  } else {
+    printf("Número de filas en 'accesos_memoria.txt': %d\n", filas);
+  }
 
-        Al finalizar (cuando se hayan leído todas las direcciones) se imprimirá:
-        - Número total de accesos.
-        - Número de fallos.
-        - Tiempo medio de acceso.
-
-        Debajo, otro mensaje con el texto leído carácter a carácter desde la caché.
-
-        Antes de salir, el programa volcará los contenidos de los 128 bytes de la caché
-        (8 líneas × 16 bytes) a un fichero binario llamado `CONTENTS_CACHE.bin`. El
-        formato de este fichero ha de respetar el orden: el byte 0 corresponde al byte 0
-        de la línea 0 de la caché y el byte 127 corresponde al byte 15 de la línea 7.
-        */
-
-    return 0;
+  printf("////////////////////////////////////////////////////////////\n");
+  printf("\n== Testing de crearMtrzDir ==\n");
+  printMtrzDir(crearMtrzDir());
+  return 0;
 }
