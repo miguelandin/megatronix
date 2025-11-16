@@ -3,7 +3,7 @@ Miguel Cabrera
 Alejandro Mamán
 */
 
-//importaciones
+// Librerias
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,45 +17,42 @@ Alejandro Mamán
 #define Contenido_RAM "CONTENTS_RAM.bin"
 #define Accesos_Memoria "accesos_memoria.txt"
 #define NUM_FILAS 8 // Numero de filas que tiene la cache
-// NEW
 #define CosteAcierto 1
 #define CosteFallo 20
 
 
 
-// Struct
+// Struct que define linea de la caché
 typedef struct{
     unsigned char ETQ;
     unsigned char Data[TAM_LINEA];
 }T_CACHE_LINE;
 
 // Variables Globales
-int globaltime = 0;
-int numFallos = 0;
-const int TAM_MEMORIA_RAM = (1 << BITS_BUS); // Bytes (Mejor usar desplazamiento de bits)
-T_CACHE_LINE NuestraCache[NUM_FILAS]; // Estructura de la cache
+int globaltime = 0; // Tiempo de accesos
+int numFallos = 0;  // Numero de fallos de acceso a la memoria
+const int TAM_MEMORIA_RAM = (1 << BITS_BUS); // Bytes (usando desplazamiento de bits)
+T_CACHE_LINE NuestraCache[NUM_FILAS]; // Array de lineas de cache -> estructura de la cache
 
 // Declaracion de funciones
+  // funciones del enunciado del proyecto
+  void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
+  void VolcarCACHE(T_CACHE_LINE *tbl);
+  void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
+  void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
-// funciones del enunciado del proyecto
-void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
-void VolcarCACHE(T_CACHE_LINE *tbl);
-void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
-void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
+  // Función de testing
+  void testingFuncionesAdd(); // Solo testing de funciones desarrolladas por Miguel
+  // funciones adiccionales
+  T_CACHE_LINE InicializarTCL();
+  unsigned char *crearSimulRam();
+  char *LeerDireccionMemoria(FILE *fptr);
+  int contarFilasMem(); // No se usa
+  char **crearMtrzDir(); // No se usa
+  void printMtrzDir(char **dirMtrx); // No se usa
+  void borrarMtrzDir(char **dirMtrx);  // no se usa
 
-// Función de testing
-void testingFuncionesAdd(); // Solo testing de funciones desarrolladas por Miguel
-// funciones adiccionales
-T_CACHE_LINE InicializarTCL();
-unsigned char *crearSimulRam();
-char *LeerDireccionMemoria(FILE *fptr);
-int contarFilasMem(); // No se usa
-char **crearMtrzDir(); // No se usa
-void printMtrzDir(char **dirMtrx); // No se usa
-void borrarMtrzDir(char **dirMtrx);  // no se usa
-
-/*Devuelve un struct T_CACHE_LINE inicializado
-con Etiqueta en xFF y datos en 0x23*/
+//Devuelve un struct T_CACHE_LINE inicializado con Etiqueta en xFF y datos en 0x23
 T_CACHE_LINE InicializarTCL() { 
 	T_CACHE_LINE res;
 
@@ -106,7 +103,8 @@ char* LeerDireccionMemoria(FILE * fptr){ // fptr: puntero que lea el archivo
   if(caracter == EOF)
     direccionMemoria = NULL; // se devolvera null
   else{
-    direccionMemoria = (unsigned char*)malloc((TAM_DIR_MEMORIA + 1) * sizeof(unsigned char)); // se le da una memoria
+    // reservar como `char` para coincidir con el tipo de retorno `char *`
+    direccionMemoria = malloc((TAM_DIR_MEMORIA + 1) * sizeof(char));
     // COmprobacion de malloc
     if(direccionMemoria == NULL) {
       return NULL; // en caso de error al asignar memoria
