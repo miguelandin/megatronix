@@ -17,32 +17,33 @@ Alejandro Mamán
 #define Contenido_RAM "CONTENTS_RAM.bin"
 #define Accesos_Memoria "accesos_memoria.txt"
 #define NUM_FILAS 8 // Numero de filas que tiene la cache
+// valores de coste de acierto y fallo
 #define CosteAcierto 1
-#define CosteFallo 20
+#define CosteFallo 20 // La IA me sugeria de forma constante de poner 20s, no se porque...
 
 
 
-// Struct que define linea de la caché
+// Struct dado por el enunciado que define linea de la caché
 typedef struct{
     unsigned char ETQ;
     unsigned char Data[TAM_LINEA];
 }T_CACHE_LINE;
 
-// Variables Globales
+// Variables Globales dadas por el enunciado
 int globaltime = 0; // Tiempo de accesos
 int numFallos = 0;  // Numero de fallos de acceso a la memoria
 const int TAM_MEMORIA_RAM = (1 << BITS_BUS); // Bytes (usando desplazamiento de bits)
 T_CACHE_LINE NuestraCache[NUM_FILAS]; // Array de lineas de cache -> estructura de la cache
 
 // Declaracion de funciones
-  // funciones del enunciado del proyecto
+  // funciones del enunciado
   void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
   void VolcarCACHE(T_CACHE_LINE *tbl);
   void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
   void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
   // Función de testing
-  void testingFuncionesAdd(); // Solo testing de funciones desarrolladas por Miguel
+  void testingFuncionesAdd(); // Solo testing de funciones desarrolladas por Miguel -> al final solo usamos InicializarTCL y crearSimulRam
   // funciones adiccionales
   T_CACHE_LINE InicializarTCL();
   unsigned char *crearSimulRam();
@@ -63,7 +64,7 @@ T_CACHE_LINE InicializarTCL() {
 	return res;
 }
 
-// Crea el array de chars Simul_RAM con el contenido de CONTENTS_RAM.bin
+// Crea el array de Simul_RAM con el contenido de CONTENTS_RAM.bin
 unsigned char* crearSimulRam() {
   FILE *fptr = fopen(Contenido_RAM, "rb"); // abre el archivo en modo lectura BINARIA
   if(fptr == NULL) // en caso de que no se encuentre el archivo
@@ -185,61 +186,77 @@ void printMtrzDir(char ** dirMtrx){
   }
 }
 
-// libera la memoria de la matriz de direcciones que se pase
+// Liberamos la memoria de la matriz de direcciones que se pasa
 void borrarMtrzDir(char **dirMtrx){
-  if(dirMtrx == NULL) return;
+  // Si la dirección es NULL, no hacemos nada (por seguridad)
+  if(dirMtrx == NULL)
+    return;
+  // Limpiamos cada fila y luego el puntero a las filas
   for(int f = 0; dirMtrx[f] != NULL; f++){
-    free(dirMtrx[f]); // libera memoria de cada fila
+    free(dirMtrx[f]);
   }
   free(dirMtrx); // libera el puntero a las filas
 }
 
-// Limpia/Inicializa la caché: ETQ = 0xFF, datos = 0x23
+// Limpia/Inicializa la cache: ETQ = 0xFF // datos = 0x23
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
-  if(tbl == NULL) return;
+  // Si la tabla es NULL, no hacemos nada (por seguridad)
+  if(tbl == NULL)
+    return;
+  // Inicializamos cada linea de la cache
   for(int i = 0; i < NUM_FILAS; i++){
-    tbl[i] = InicializarTCL();
+    tbl[i] = InicializarTCL(); // llamando a la funcion que inicializa una linea
   }
 }
 
-// Vuelca el contenido de la caché por pantalla y escribe CONTENTS_CACHE.bin
+// Vuelca el contenido de la cache por pantalla y escribe CONTENTS_CACHE.bin
 void VolcarCACHE(T_CACHE_LINE *tbl){
-  if(tbl == NULL) return;
-
+  // Si la tabla es NULL, no hacemos nada (por seguridad)
+  if(tbl == NULL)
+    return;
+  // Volcado por pantalla
   printf("\n--- Volcado de la CACHE ---\n");
+  // Mostrar cada linea
   for(int i = 0; i < NUM_FILAS; i++){
     printf("Linea %d  ETQ=0x%02X  ", i, tbl[i].ETQ);
+    // Mostrar bytes en orden
     for(int b = TAM_LINEA - 1; b >= 0; b--){
       printf("%02X ", tbl[i].Data[b]);
     }
     printf("\n");
   }
 
-  // Volcar binario: 128 bytes en el orden linea0.byte0 ... linea7.byte15
+  // Volcar el binario -> 128 bytes en orden
   FILE *fout = fopen("CONTENTS_CACHE.bin", "wb");
+  // Comprobacion de fopen
   if(fout != NULL){
+    // escribir cada linea en orden
     for(int i = 0; i < NUM_FILAS; i++){
-      // escribir bytes en orden byte0..byte15
       fwrite(tbl[i].Data, 1, TAM_LINEA, fout);
     }
     fclose(fout);
-  } else {
+  }
+  else {
+    // Error al abrir el archivo
     fprintf(stderr, "Aviso: no se pudo crear CONTENTS_CACHE.bin\n");
   }
 }
 
-/* ParsearDireccion: descompone una direccion (12 bits) en campos:
+/* ParsearDireccion: descompone una direccion de 12 bits en los campos:
    - palabra: offset dentro de la linea (4 bits)
    - linea: indice de fila en la cache (3 bits)
    - ETQ: etiqueta (5 bits)
    - bloque: numero de bloque (direccion >> 4)
 */
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque){
-  if(ETQ == NULL || palabra == NULL || linea == NULL || bloque == NULL) return;
-  // Limitamos la dirección a BITS_BUS bits para evitar que valores mayores corrompan la ETQ al parsear
+  // Comprobacion de punteros nulos (por segurida)
+  if(ETQ == NULL || palabra == NULL || linea == NULL || bloque == NULL)
+    return;
+
+  // Limitamos la dirección a BITS_BUS bits para evitar que valores mayores corrompan la ETQ al parsear --> pista dada por Claude
   addr &= ((1u << BITS_BUS) - 1u);
 
-  // parseos que vamos a aplicar en cada campo
+  // Parseos que vamos a aplicar en cada campo
   unsigned int parseoPalabra = (1u << 4) - 1u; // 0xF
   unsigned int parseoLinea  = (1u << 3) - 1u; // 0x7
   unsigned int parseoETQ    = (1u << 5) - 1u; // 0x1F
@@ -253,51 +270,67 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
 
 
 /* TratarFallo:
-  - cargar desde MRAM el bloque indicado en la linea de cache
-  - actualizando ETQ, copiando TAM_LINEA bytes, e incrementando numFallos y aumentando globaltime
-  (no se porque añadimos 20s al globaltime, copilot casi q me obliga a que lo ponga)
+  - carga desde MRAM el bloque indicado en la linea de cache
+  - Pasos:
+    actualizando ETQ -> copiando TAM_LINEA bytes -> incrementando numFallos -> aumentando globaltime
 */
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
-  if(tbl == NULL) return;
-  if(linea < 0 || linea >= NUM_FILAS) return;
+  // Comprobacion de punteros nulos (por segurida)
+  if(tbl == NULL)
+    return;
+    // Comprobacion de rango de linea
+  if(linea < 0 || linea >= NUM_FILAS)
+    return;
 
-  /* Contabilizamos el fallo y sumar el coste aunque no podamos leer MRAM. */
+  // Contamos el fallo y sumamos el coste cuando no podamos leer
   numFallos++;
-  globaltime += CosteFallo; // coste por traer el bloque desde memoria principal
+  globaltime += CosteFallo;
 
+  // Comprobacion de MRAM
   if(MRAM == NULL){
+    // No podemos cargar datos desde MRAM
     fprintf(stderr, "TratarFallo: MRAM es NULL, no se pueden cargar datos para bloque %d\n", bloque);
-    /* actualizar ETQ para reflejar reemplazo lógico y dejar la línea con ceros */
-    for(unsigned int i = 0; i < TAM_LINEA; i++) tbl[linea].Data[i] = 0x00;
-    tbl[linea].ETQ = (unsigned char)(ETQ & 0xFF);
-    printf("Funcion TratarFallo --> linea %d ETQ=0x%02X (sin datos, t=%d, fallos=%d)\n",
-           linea, tbl[linea].ETQ, globaltime, numFallos);
+
+    // actualizamos la  ETQ para reflejar reemplazo y dejar la línea con ceros
+    // Copylot me insistió en que pusiera unsigned int en el bucle for
+    for(unsigned int i = 0; i < TAM_LINEA; i++){
+      tbl[linea].Data[i] = 0x00;
+    }
+    // actualizamos la etiqueta --> aunque no haya datos
+    tbl[linea].ETQ = (unsigned char)(ETQ & 0xFF); // aseguramos que ETQ es un byte
+
+    // mostramos info del tratado del fallo
+    printf("Funcion TratarFallo --> linea %d ETQ=0x%02X (sin datos, t=%d, fallos=%d)\n",linea, tbl[linea].ETQ, globaltime, numFallos);
+
     return;
   }
 
   // Ahora vamos a copiar los datos desde MRAM a la cache
   unsigned int inicio = (unsigned int)bloque * (unsigned int)TAM_LINEA;
   unsigned int dispo = 0;
-  // comprobar si hay suficientes bytes en MRAM desde inicio
+  
+  // Comprobamos si hay suficientes bytes en MRAM desde inicio
   if(inicio < (unsigned int)TAM_MEMORIA_RAM)
     dispo = (unsigned int)TAM_MEMORIA_RAM - inicio;
-
-  // determinar cuantos bytes copiar
+  
+  // Determinamos cuantos bytes hay que copiar
   unsigned int tocopy = (dispo >= TAM_LINEA) ? TAM_LINEA : dispo;
 
-  // copiar los bytes desde MRAM a la cache
+  // Copiamos los bytes desde MRAM a la cache
   for(unsigned int i = 0; i < tocopy; i++){
     tbl[linea].Data[i] = (unsigned char)MRAM[inicio + i];
   }
-  // si no se han copiado todos los bytes, rellenar con ceros
+
+  // si no se han copiado TODOS los bytes, rellenar con ceros --> Idea desarrollada por Copilot
   if(tocopy < TAM_LINEA){
     for(unsigned int i = tocopy; i < TAM_LINEA; i++)
       tbl[linea].Data[i] = 0x00; // rellenar con ceros si faltan bytes
   }
-  // actualizar la ETQ
+
+  // actualizamos la ETQ
   tbl[linea].ETQ = (unsigned char)(ETQ & 0xFF);
 
-  // mostrar info de TratarFallo
+    // mostramos info del tratado del fallo
   printf("Funcion TratarFallo --> linea %d cargada ETQ=0x%02X desde bloque %d (t=%d, fallos=%d)\n",linea, tbl[linea].ETQ, bloque, globaltime, numFallos);
   printf("//////////////////////////////////////////////////////////////////\n");
 
@@ -400,28 +433,30 @@ void testingFuncionesAdd(void){
     }
 }
 
-/* Programa principal: integra el bucle de accesos, estadisticas y volcado final */
 int main(void){
-  // Inicializamos la caché
+  // Inicializamos la cache
   LimpiarCACHE(NuestraCache);
-  // Estadisticas
+
+  // Stats
   int totalAccesses = 0;
   int hits = 0;
   numFallos = 0;
   globaltime = 0;
 
-  // Variables para parsear dirección
+  // Variables para parsear la direccion
   int ETQ= 0, palabra= 0, linea= 0, bloque = 0;
 
 
-  //Cargamos la memoria principal simulada
+  // Cargamos la memoria principal simulada en MRAM
   unsigned char *MRAM = crearSimulRam();
+  // Comprobacion de MRAM
   if(MRAM == NULL){
     fprintf(stderr, "Aviso: no se pudo leer 'CONTENTS_RAM.bin'. Algunos fallos no se podrán simular.\n");
   }
 
-  /* Abrir fichero de accesos */
+  // Abrimos el fichero con los accesos a memoria
   FILE *ficheroAccesos = fopen(Accesos_Memoria, "r");
+  // Comprobacion de fopen
   if(ficheroAccesos == NULL){
     fprintf(stderr, "ERROR: no se pudo abrir '%s'\n", Accesos_Memoria);
     if(MRAM) free(MRAM);
@@ -430,25 +465,27 @@ int main(void){
 
   //Bucle de accesos --> leemos linea a linea con LeerDireccionMemoria
   char *dir;
+  // Mientras haya direcciones que leer...
   while((dir = LeerDireccionMemoria(ficheroAccesos)) != NULL){
     // IMPORTANTE --> parsear dirección hex a entero
-    // convertimos el strng a unsigned int
+    // convertimos el strng a unsigned int porque las direcciones son hexadecimales
     unsigned int addr = (unsigned int)strtoul(dir, NULL, 16);
-    free(dir);
-    // parseamos la direccion
+    free(dir); // liberamos la direccion leida
+    
+    // Parseamos la direccion
     ParsearDireccion(addr, &ETQ, &palabra, &linea, &bloque);
 
-    // Mostrar la info respecto al intento de acceso
+    // Mostramos la info sobre el intento de acceso
     printf("Acceso Numero--> %d: addr=0x%03X -> ETQ=%d linea=%d palabra=%d bloque=%d\n",totalAccesses, addr, ETQ, linea, palabra, bloque);
 
-    // Compobamios si hemos aciertado
     sleep(2); //retardo entre accesos
+    // Vemos si hemos aciertado
     if(NuestraCache[linea].ETQ == (unsigned char)ETQ){ // hit
       hits++;
       globaltime += CosteAcierto;
       printf(" -> HIT (t=%d)\n", globaltime);
       printf("//////////////////////////////////////////////////////////////////\n");
-    } else { // Fallo
+    } else { // Miss
       printf(" -> MISS - Calling TratarFallo() ...\n");
       sleep(3); //retardo entre fallos
       TratarFallo(NuestraCache, (char*)MRAM, ETQ, linea, bloque);
@@ -459,7 +496,7 @@ int main(void){
     // retardo entre accesos
     sleep(2);
   }
-
+  // Cuando hayamos terminado de leer las direcciones, cerramos el fichero
   fclose(ficheroAccesos);
 
   // Volcamos el estado final de la cache
@@ -472,6 +509,7 @@ int main(void){
   printf("Fallos: %d\n", numFallos);
   printf("Tiempo global: %d\n", globaltime);
 
+  // Liberamos la memoria de MRAM
   if(MRAM)
     free(MRAM);
     
