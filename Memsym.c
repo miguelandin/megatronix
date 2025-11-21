@@ -19,7 +19,7 @@ Alejandro Mamán
 #define NUM_FILAS 8 // Numero de filas que tiene la cache
 // valores de coste de acierto y fallo
 #define CosteAcierto 1
-#define CosteFallo 20 // La IA me sugeria de forma constante de poner 20s, no se porque...
+#define CosteFallo 20
 
 
 
@@ -121,7 +121,7 @@ char* LeerDireccionMemoria(FILE * fptr){ // fptr: puntero que lea el archivo
   return direccionMemoria;
 }
 
-// devuelve el numero de filas que hay en accesos_memoria.txt
+// devuelve el numero de filas que hay en accesos_memoria.txt -> NO SE USA
 int contarFilasMem(){
   FILE * fptr = fopen(Accesos_Memoria, "r"); // abre el archivo
   if(fptr == NULL) // en caso de no encontrarse el archivo
@@ -142,7 +142,7 @@ int contarFilasMem(){
 
 
 // en caso de querer cargar todas las direccines de memoria
-char** crearMtrzDir(){ // filas: saber el número de filas hay
+char** crearMtrzDir(){ // filas: saber el número de filas hay -> No se usa
   FILE *fptr = fopen(Accesos_Memoria, "r"); // abre el archivo
   if(fptr == NULL) // en caso de que no se encuentre el archivo
     return NULL;
@@ -173,7 +173,7 @@ char** crearMtrzDir(){ // filas: saber el número de filas hay
   return dirMtrx;
 }
 
-// imprime la matriz de direcciones que se le pase
+// imprime la matriz de direcciones que se le pase -> NO SE USA
 void printMtrzDir(char ** dirMtrx){
   if(dirMtrx == NULL) return;
 
@@ -186,7 +186,7 @@ void printMtrzDir(char ** dirMtrx){
   }
 }
 
-// Liberamos la memoria de la matriz de direcciones que se pasa
+// Liberamos la memoria de la matriz de direcciones que se pasa -> NO SE USA
 void borrarMtrzDir(char **dirMtrx){
   // Si la dirección es NULL, no hacemos nada (por seguridad)
   if(dirMtrx == NULL)
@@ -282,9 +282,8 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
   if(linea < 0 || linea >= NUM_FILAS)
     return;
 
-  // Contamos el fallo y sumamos el coste cuando no podamos leer
+  // Contamos el fallo
   numFallos++;
-  globaltime += CosteFallo;
 
   // Comprobacion de MRAM
   if(MRAM == NULL){
@@ -306,7 +305,7 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
   }
 
   // Ahora vamos a copiar los datos desde MRAM a la cache
-  unsigned int inicio = (unsigned int)bloque * (unsigned int)TAM_LINEA;
+  unsigned int inicio = (unsigned int)bloque * (unsigned int)TAM_LINEA; // direccion inicial en MRAM
   unsigned int dispo = 0;
   
   // Comprobamos si hay suficientes bytes en MRAM desde inicio
@@ -336,7 +335,7 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
 
 }
 
-/* Implementacion de testingFuncionesAdd: agrupa los tests que antes estaban en main */
+/* Implementacion de testingFuncionesAdd: agrupa los tests que antes estaban en main -> Se puede eliminar*/
 void testingFuncionesAdd(void){
     printf("////////////////////////////////////////////////////////////\n");
     printf("== Testing InicializarTCL ==\n");
@@ -459,7 +458,8 @@ int main(void){
   // Comprobacion de fopen
   if(ficheroAccesos == NULL){
     fprintf(stderr, "ERROR: no se pudo abrir '%s'\n", Accesos_Memoria);
-    if(MRAM) free(MRAM);
+    if(MRAM)
+    free(MRAM);
     return 1;
   }
 
@@ -469,7 +469,7 @@ int main(void){
   while((dir = LeerDireccionMemoria(ficheroAccesos)) != NULL){
     // IMPORTANTE --> parsear dirección hex a entero
     // convertimos el strng a unsigned int porque las direcciones son hexadecimales
-    unsigned int addr = (unsigned int)strtoul(dir, NULL, 16);
+    unsigned int addr = (unsigned int)strtoul(dir, NULL, 16); // Entero en base 16
     free(dir); // liberamos la direccion leida
     
     // Parseamos la direccion
@@ -486,13 +486,13 @@ int main(void){
       printf(" -> HIT (t=%d)\n", globaltime);
       printf("//////////////////////////////////////////////////////////////////\n");
     } else { // Miss
+      globaltime += CosteFallo;
       printf(" -> MISS - Calling TratarFallo() ...\n");
       sleep(3); //retardo entre fallos
       TratarFallo(NuestraCache, (char*)MRAM, ETQ, linea, bloque);
     }
 
     totalAccesses++;
-
     // retardo entre accesos
     sleep(2);
   }
