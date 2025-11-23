@@ -42,17 +42,12 @@ T_CACHE_LINE NuestraCache[NUM_FILAS]; // Array de lineas de cache -> estructura 
   void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
   void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
-  // Función de testing
-  void testingFuncionesAdd(); // Solo testing de funciones desarrolladas por Miguel -> al final solo usamos InicializarTCL y crearSimulRam
-  // funciones adiccionales
+  // funciones adiccionales usadas
   T_CACHE_LINE InicializarTCL();
   unsigned char *crearSimulRam();
   char *LeerDireccionMemoria(FILE *fptr);
-  int contarFilasMem(); // No se usa
-  char **crearMtrzDir(); // No se usa
-  void printMtrzDir(char **dirMtrx); // No se usa
-  void borrarMtrzDir(char **dirMtrx);  // no se usa
 
+// Definicion de funciones
 //Devuelve un struct T_CACHE_LINE inicializado con Etiqueta en xFF y datos en 0x23
 T_CACHE_LINE InicializarTCL() { 
 	T_CACHE_LINE res;
@@ -121,83 +116,6 @@ char* LeerDireccionMemoria(FILE * fptr){ // fptr: puntero que lea el archivo
   return direccionMemoria;
 }
 
-// devuelve el numero de filas que hay en accesos_memoria.txt -> NO SE USA
-int contarFilasMem(){
-  FILE * fptr = fopen(Accesos_Memoria, "r"); // abre el archivo
-  if(fptr == NULL) // en caso de no encontrarse el archivo
-    return -1;
-
-  int cont = 0;
-  char buffer[256];
-
-  /* Contamos líneas leyendo con fgets, así manejamos correctamente
-     líneas incluso si la última no termina en '\n'. */
-  while(fgets(buffer, sizeof buffer, fptr) != NULL){
-    cont++;
-  }
-
-  fclose(fptr);
-  return cont;
-}
-
-
-// en caso de querer cargar todas las direccines de memoria
-char** crearMtrzDir(){ // filas: saber el número de filas hay -> No se usa
-  FILE *fptr = fopen(Accesos_Memoria, "r"); // abre el archivo
-  if(fptr == NULL) // en caso de que no se encuentre el archivo
-    return NULL;
-
-  int filas = contarFilasMem();
-  if(filas <= 0){
-    fclose(fptr);
-    return NULL;
-  }
-
-  char **dirMtrx = (char **)malloc((filas + 1) * sizeof(char *)); // +1 para NULL terminator
-  if(dirMtrx == NULL){
-    fclose(fptr);
-    return NULL;
-  }
-
-  int cont = 0;
-  for(int i = 0; i < filas; i++){
-    char *dir = LeerDireccionMemoria(fptr);
-    if(dir == NULL){
-      break; // EOF inesperado
-    }
-    dirMtrx[cont++] = dir;
-  }
-
-  dirMtrx[cont] = NULL; // terminar la matriz
-  fclose(fptr);
-  return dirMtrx;
-}
-
-// imprime la matriz de direcciones que se le pase -> NO SE USA
-void printMtrzDir(char ** dirMtrx){
-  if(dirMtrx == NULL) return;
-
-  printf("Número de filas: (según matriz)\n");
-  for(int f = 0; dirMtrx[f] != NULL; f++){
-    printf("%d: ", f);
-    for(int c = 0; c < TAM_DIR_MEMORIA && dirMtrx[f][c] != '\0'; c++)
-      printf("%c", dirMtrx[f][c]);
-    printf("\n");
-  }
-}
-
-// Liberamos la memoria de la matriz de direcciones que se pasa -> NO SE USA
-void borrarMtrzDir(char **dirMtrx){
-  // Si la dirección es NULL, no hacemos nada (por seguridad)
-  if(dirMtrx == NULL)
-    return;
-  // Limpiamos cada fila y luego el puntero a las filas
-  for(int f = 0; dirMtrx[f] != NULL; f++){
-    free(dirMtrx[f]);
-  }
-  free(dirMtrx); // libera el puntero a las filas
-}
-
 // Limpia/Inicializa la cache: ETQ = 0xFF // datos = 0x23
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
   // Si la tabla es NULL, no hacemos nada (por seguridad)
@@ -254,9 +172,9 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
     return;
 
   // Limitamos la dirección a BITS_BUS bits para evitar que valores mayores corrompan la ETQ al parsear --> pista dada por Claude
-  addr &= ((1u << BITS_BUS) - 1u);
+  addr &= ((1u << BITS_BUS) - 1u); // recorta la dirección para dejar solo bits menos significativos 
 
-  // Parseos que vamos a aplicar en cada campo
+  // Declramos como lo vamos a plaicar a cada campo
   unsigned int parseoPalabra = (1u << 4) - 1u; // 0xF
   unsigned int parseoLinea  = (1u << 3) - 1u; // 0x7
   unsigned int parseoETQ    = (1u << 5) - 1u; // 0x1F
@@ -306,13 +224,13 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
 
   // Ahora vamos a copiar los datos desde MRAM a la cache
   unsigned int inicio = (unsigned int)bloque * (unsigned int)TAM_LINEA; // direccion inicial en MRAM
-  unsigned int dispo = 0;
+  unsigned int dispo = 0; // bytes disponibles para copiar desde MRAM
   
   // Comprobamos si hay suficientes bytes en MRAM desde inicio
-  if(inicio < (unsigned int)TAM_MEMORIA_RAM)
-    dispo = (unsigned int)TAM_MEMORIA_RAM - inicio;
+  if(inicio < (unsigned int)TAM_MEMORIA_RAM) // Si hay bytes disponibles
+    dispo = (unsigned int)TAM_MEMORIA_RAM - inicio; // calculamos los bytes disponibles desde inicio
   
-  // Determinamos cuantos bytes hay que copiar
+  // Determinamos cuantos deberiamos de copiar
   unsigned int tocopy = (dispo >= TAM_LINEA) ? TAM_LINEA : dispo;
 
   // Copiamos los bytes desde MRAM a la cache
@@ -320,7 +238,7 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
     tbl[linea].Data[i] = (unsigned char)MRAM[inicio + i];
   }
 
-  // si no se han copiado TODOS los bytes, rellenar con ceros --> Idea desarrollada por Copilot
+  // Si no se han copiado TODOS los bytes, rellenar con ceros --> Idea desarrollada por Copilot
   if(tocopy < TAM_LINEA){
     for(unsigned int i = tocopy; i < TAM_LINEA; i++)
       tbl[linea].Data[i] = 0x00; // rellenar con ceros si faltan bytes
@@ -335,102 +253,9 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
 
 }
 
-/* Implementacion de testingFuncionesAdd: agrupa los tests que antes estaban en main -> Se puede eliminar*/
-void testingFuncionesAdd(void){
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("== Testing InicializarTCL ==\n");
-    T_CACHE_LINE linea = InicializarTCL();
-    printf("ETQ = 0x%02X\n", linea.ETQ);
-    printf("Data: ");
-    for(int i = 0; i < TAM_LINEA; i++)
-        printf("%02X ", linea.Data[i]);
-    printf("\n\n");
-
-    printf("////////////////////////////////////////////////////////////\n");
-
-    printf("== Testing crearSimulRam ==\n");
-    unsigned char *ram = crearSimulRam();
-    // Comprobación
-    if(ram == NULL){
-      fprintf(stderr, "ERROR: no se pudo leer CONTENTS_RAM.bin o alloc falló\n");
-    } else {
-      int mostrar = (TAM_MEMORIA_RAM < 32) ? TAM_MEMORIA_RAM : 32;
-      printf("Primeros %d bytes de Simul_RAM:\n", mostrar);
-      for(int i = 0; i < mostrar; i++){
-        printf("En hexa --> %02X || ", ram[i]);
-        printf("En char --> %c \n", ram[i]);
-      }
-      free(ram);
-    }
-
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("\n== Testing LeerDireccionMemoria ==\n");
-    FILE *fdir = fopen(Accesos_Memoria, "r");
-    if(fdir == NULL){
-      fprintf(stderr, "Aviso: no se encontro 'accesos_memoria.txt'\n");
-    } else {
-      char *linea;
-      int idx = 0;
-      while((linea = LeerDireccionMemoria(fdir)) != NULL){
-        printf("Linea %d: '%s'\n", idx++, linea);
-        free(linea);
-      }
-      fclose(fdir);
-    }
-
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("\n== Testing contarFilasMem ==\n");
-    int filas = contarFilasMem();
-    if(filas == -1){
-      fprintf(stderr, "Aviso: no se encontro 'accesos_memoria.txt'\n");
-    } else {
-      printf("Número de filas en 'accesos_memoria.txt': %d\n", filas);
-    }
-
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("\n== Testing de crearMtrzDir ==\n");
-    char **m = crearMtrzDir();
-    if(m == NULL){
-      fprintf(stderr, "Aviso: crearMtrzDir devolvio NULL\n");
-    } else {
-      printMtrzDir(m);
-      borrarMtrzDir(m);
-    }
-
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("\n== Testing ParsearDireccion ==\n");
-    {
-      unsigned int addr = 0xABC; /* ejemplo dentro de 12 bits */
-      int ETQ, palabra, lineaIdx, bloque;
-      ParsearDireccion(addr, &ETQ, &palabra, &lineaIdx, &bloque);
-      printf("Addr 0x%03X -> ETQ=%d palabra=%d linea=%d bloque=%d\n", addr, ETQ, palabra, lineaIdx, bloque);
-    }
-
-    printf("////////////////////////////////////////////////////////////\n");
-    printf("\n== Testing TratarFallo ==\n");
-    {
-      unsigned char *fakeRAM = (unsigned char*)malloc(TAM_MEMORIA_RAM);
-      if(fakeRAM == NULL){
-        fprintf(stderr, "Aviso: no se pudo alloc fakeRAM para test TratarFallo\n");
-      } else {
-        for(int i = 0; i < TAM_MEMORIA_RAM; i++)
-          fakeRAM[i] = (unsigned char)(i & 0xFF);
-
-        /* reset cache y ejecutar fallo de prueba */
-        LimpiarCACHE(NuestraCache);
-        int ETQ, palabra, lineaIdx, bloque;
-        ParsearDireccion(0xABC, &ETQ, &palabra, &lineaIdx, &bloque);
-        TratarFallo(NuestraCache, (char*)fakeRAM, ETQ, lineaIdx, bloque);
-
-        printf("Linea %d ETQ=0x%02X Datos primeros bytes: ", lineaIdx, NuestraCache[lineaIdx].ETQ);
-        for(int i = 0; i < TAM_LINEA; i++)
-          printf("%02X ", NuestraCache[lineaIdx].Data[i]);
-        printf("\n");
-
-        free(fakeRAM);
-      }
-    }
-}
+/* Removed `testingFuncionesAdd` — tests were used during development but are
+   not needed at runtime in `main`. Keep helpers `InicializarTCL`,
+   `crearSimulRam` and `LeerDireccionMemoria` which are used by the simulator. */
 
 int main(void){
   // Inicializamos la cache
@@ -450,7 +275,8 @@ int main(void){
   unsigned char *MRAM = crearSimulRam();
   // Comprobacion de MRAM
   if(MRAM == NULL){
-    fprintf(stderr, "Aviso: no se pudo leer 'CONTENTS_RAM.bin'. Algunos fallos no se podrán simular.\n");
+    fprintf(stderr, "Aviso: no se pudo leer 'CONTENTS_RAM.bin'\n");
+    return -1;
   }
 
   // Abrimos el fichero con los accesos a memoria
@@ -460,7 +286,7 @@ int main(void){
     fprintf(stderr, "ERROR: no se pudo abrir '%s'\n", Accesos_Memoria);
     if(MRAM)
     free(MRAM);
-    return 1;
+    return -1;
   }
 
   //Bucle de accesos --> leemos linea a linea con LeerDireccionMemoria
@@ -508,6 +334,7 @@ int main(void){
   printf("Aciertos: %d\n", hits);
   printf("Fallos: %d\n", numFallos);
   printf("Tiempo global: %d\n", globaltime);
+  printf("Tiempo medio por acceso: %.2f\n", (float)globaltime / (float)totalAccesses);
 
   // Liberamos la memoria de MRAM
   if(MRAM)

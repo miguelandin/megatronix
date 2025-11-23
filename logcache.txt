@@ -1,0 +1,68 @@
+Acceso Numero--> 0: addr=0x22E -> ETQ=4 linea=2 palabra=14 bloque=34
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 2 cargada ETQ=0x04 desde bloque 34 (t=20, fallos=1)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 1: addr=0x434 -> ETQ=8 linea=3 palabra=4 bloque=67
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 3 cargada ETQ=0x08 desde bloque 67 (t=40, fallos=2)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 2: addr=0x430 -> ETQ=8 linea=3 palabra=0 bloque=67
+ -> HIT (t=41)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 3: addr=0x598 -> ETQ=11 linea=1 palabra=8 bloque=89
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 1 cargada ETQ=0x0B desde bloque 89 (t=61, fallos=3)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 4: addr=0x595 -> ETQ=11 linea=1 palabra=5 bloque=89
+ -> HIT (t=62)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 5: addr=0x596 -> ETQ=11 linea=1 palabra=6 bloque=89
+ -> HIT (t=63)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 6: addr=0xC77 -> ETQ=24 linea=7 palabra=7 bloque=199
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 7 cargada ETQ=0x18 desde bloque 199 (t=83, fallos=4)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 7: addr=0xB09 -> ETQ=22 linea=0 palabra=9 bloque=176
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 0 cargada ETQ=0x16 desde bloque 176 (t=103, fallos=5)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 8: addr=0x63A -> ETQ=12 linea=3 palabra=10 bloque=99
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 3 cargada ETQ=0x0C desde bloque 99 (t=123, fallos=6)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 9: addr=0xFC4 -> ETQ=31 linea=4 palabra=4 bloque=252
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 4 cargada ETQ=0x1F desde bloque 252 (t=143, fallos=7)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 10: addr=0x81C -> ETQ=16 linea=1 palabra=12 bloque=129
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 1 cargada ETQ=0x10 desde bloque 129 (t=163, fallos=8)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 11: addr=0xFC0 -> ETQ=31 linea=4 palabra=0 bloque=252
+ -> HIT (t=164)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 12: addr=0x062 -> ETQ=0 linea=6 palabra=2 bloque=6
+ -> MISS - Calling TratarFallo() ...
+Funcion TratarFallo --> linea 6 cargada ETQ=0x00 desde bloque 6 (t=184, fallos=9)
+//////////////////////////////////////////////////////////////////
+Acceso Numero--> 13: addr=0xFC6 -> ETQ=31 linea=4 palabra=6 bloque=252
+ -> HIT (t=185)
+//////////////////////////////////////////////////////////////////
+
+--- Volcado de la CACHE ---
+Linea 0  ETQ=0x16  74 65 64 69 76 20 75 74 61 6E 65 73 20 6E 69 20 
+Linea 1  ETQ=0x10  2E 43 20 74 65 20 2E 6C 70 20 6D 75 6E 75 62 69 
+Linea 2  ETQ=0x04  74 73 6F 6E 20 6D 65 75 71 20 2C 73 69 72 65 70 
+Linea 3  ETQ=0x0C  61 20 65 75 71 65 6E 20 6D 75 69 6C 69 73 6E 6F 
+Linea 4  ETQ=0x1F  72 65 63 20 73 69 6D 72 61 20 6E 69 20 65 72 6F 
+Linea 5  ETQ=0xFF  23 23 23 23 23 23 23 23 23 23 23 23 23 23 23 23 
+Linea 6  ETQ=0x00  20 64 61 20 6D 65 75 71 20 3F 74 65 64 75 6C 65 
+Linea 7  ETQ=0x18  20 6D 61 74 20 6F 6D 65 6E 20 6D 61 69 20 6D 75 
+
+--- Estadisticas de Accesos ---
+Accesos totales: 14
+Aciertos: 5
+Fallos: 9
+Tiempo global: 185
+Tiempo medio por acceso: 13.21
