@@ -190,7 +190,7 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
 /* TratarFallo:
   - carga desde MRAM el bloque indicado en la linea de cache
   - Pasos:
-    actualizando ETQ -> copiando TAM_LINEA bytes -> incrementando numFallos -> aumentando globaltime
+  Pasos que realiza la funcion : actualizando ETQ -> copiando TAM_LINEA bytes -> incrementando numFallos -> aumentando globaltime
 */
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
   // Comprobacion de punteros nulos (por segurida)
@@ -202,25 +202,6 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
 
   // Contamos el fallo
   numFallos++;
-
-  // Comprobacion de MRAM
-  if(MRAM == NULL){
-    // No podemos cargar datos desde MRAM
-    fprintf(stderr, "TratarFallo: MRAM es NULL, no se pueden cargar datos para bloque %d\n", bloque);
-
-    // actualizamos la  ETQ para reflejar reemplazo y dejar la línea con ceros
-    // Copylot me insistió en que pusiera unsigned int en el bucle for
-    for(unsigned int i = 0; i < TAM_LINEA; i++){
-      tbl[linea].Data[i] = 0x00;
-    }
-    // actualizamos la etiqueta --> aunque no haya datos
-    tbl[linea].ETQ = (unsigned char)(ETQ & 0xFF); // aseguramos que ETQ es un byte
-
-    // mostramos info del tratado del fallo
-    printf("Funcion TratarFallo --> linea %d ETQ=0x%02X (sin datos, t=%d, fallos=%d)\n",linea, tbl[linea].ETQ, globaltime, numFallos);
-
-    return;
-  }
 
   // Ahora vamos a copiar los datos desde MRAM a la cache
   unsigned int inicio = (unsigned int)bloque * (unsigned int)TAM_LINEA; // direccion inicial en MRAM
@@ -252,6 +233,7 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
   printf("//////////////////////////////////////////////////////////////////\n");
 
 }
+
 int main(void){
   // Inicializamos la cache
   LimpiarCACHE(NuestraCache);
