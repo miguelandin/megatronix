@@ -252,11 +252,6 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
   printf("//////////////////////////////////////////////////////////////////\n");
 
 }
-
-/* Removed `testingFuncionesAdd` — tests were used during development but are
-   not needed at runtime in `main`. Keep helpers `InicializarTCL`,
-   `crearSimulRam` and `LeerDireccionMemoria` which are used by the simulator. */
-
 int main(void){
   // Inicializamos la cache
   LimpiarCACHE(NuestraCache);
